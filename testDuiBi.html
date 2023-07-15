@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no"/>
+    <title>sample</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/3.38/dijit/themes/claro/claro.css">
+    <link rel="stylesheet" href="https://js.arcgis.com/3.38/esri/css/esri.css">
+
+    <style>
+        html,
+        body,
+        #map {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script src="https://js.arcgis.com/3.38/"></script>
+
+<!--    这里使用的是3.x的api-->
+
+    <script>
+        require([
+            'dojo/_base/lang',
+            'dojo/_base/declare',
+            "dojo/dnd/move",
+            "dojo/_base/fx",
+            'dojo/parser',
+
+
+            "dijit/form/CheckBox",
+            "dijit/a11yclick",
+            "esri/Color",
+            "esri/layers/ArcGISTiledMapServiceLayer",
+            "esri/graphicsUtils",
+            "esri/domUtils",
+            "esri/tasks/QueryTask",
+            "esri/tasks/query",
+            "esri/graphic",
+            "esri/tasks/FeatureSet",
+            "esri/geometry/Point",
+            "esri/SpatialReference",
+            "esri/InfoTemplate",
+            "esri/layers/GraphicsLayer",
+            "esri/layers/FeatureLayer",
+            "esri/symbols/PictureMarkerSymbol",
+            "esri/renderers/SimpleRenderer",
+            "esri/symbols/SimpleFillSymbol",
+            "esri/symbols/SimpleLineSymbol",
+            "esri/symbols/SimpleMarkerSymbol",
+            "esri/graphic",
+            "esri/geometry/webMercatorUtils",
+            "esri/toolbars/draw",
+            "esri/dijit/Legend",
+            "dojo/_base/xhr",
+            "dojo/on",
+            "dojo/dom",
+            "dojo/dom-attr",
+            "dojo/dom-construct",
+            "dojo/domReady!"
+
+        ], function(
+            lang,
+            declare,
+            move,
+            fx,
+            parser,
+
+            CheckBox,
+            allyclick,
+            Color,
+            ArcGISTiledMapServiceLayer,
+            graphicsUtils,
+            domUtils,
+            QueryTask,
+            Query,
+            graphic,
+            FeatureSet,
+            Point,
+            SpatialReference,
+            InfoTemplate,
+            GraphicsLayer,
+            FeatureLayer,
+            PictureMarkerSymbol,
+            SimpleRenderer,
+            SimpleFillSymbol,
+            SimpleLineSymbol,
+            SimpleMarkerSymbol,
+            Graphic,
+            webMercatorUtils,
+            Draw,
+            Legend,
+            xhr,
+            on,
+            dom,
+
+
+
+        ) {
+            //底图
+            const map = new Map("map", {
+                center: [120.59241, 31.30356], // longitude, latitude
+                zoom: 13
+            });
+            //更改为捷泰蓝底图
+            const tilelayer = new ArcGISTiledMapServiceLayer("http://map.geoq.cn/arcgis/rest/services/ChinaOnlineStreetPurplishBlue/MapServer");
+            map.addLayer(tilelayer);
+
+            //定义一个图层，下面会用到
+            let AllStopPointlayer = GraphicsLayer({id: "AllStopPointlayer"})
+            //显示所有POI点（节点抽稀后）并加上渲染图片
+            const btn_tianjia2 = document.getElementById("button_tianjia2");
+            btn_tianjia2.onclick = function () {
+                const featurelayer_point = new FeatureLayer("https://edutrial.geoscene.cn/geoscene/rest/services/Hosted/cx/FeatureServer/0", {
+                    mode: FeatureLayer.MODE_SNAPSHOT,
+                    outFields: ["*"]
+                });
+                //POI点换成图片
+                var Simbol = new PictureMarkerSymbol("https://cf.dtcj.com/fc16f1c1-ded8-46e1-9541-64708b2112d2.jpg", 28, 28);
+                var render = new SimpleRenderer(Simbol);
+                featurelayer_point.setRenderer(render);
+                alert("点击了按钮2");
+
+                AllStopPointlayer = featurelayer_point;
+                map.addLayer(AllStopPointlayer);
+            };
+
+
+                let ODlayer = new GraphicsLayer({id: "ODlayer"})
+                let CarPointlayer= new GraphicsLayer({id: "CarPointlayer"})
+                let Pointdensitylayer = new GraphicsLayer({id: "Pointdensitylayer"})
+
+                let baseClass = 'jimu-widget-multi-Contrast';
+                let name = 'multi-Contrast';
+                let legend = null;
+                let layer = null;
+                let featureLayer = null;
+                let poilayer = new GraphicsLayer({id: "poilayer"});
+
+
+
+
+
+
+            const init = document.getElementById("init");
+            init.onclick = function () {
+                var con = "all";
+                var dataName = [],
+                    value = []
+
+                $("#all").css("margin-right","53px")
+                // var Symbol = new PictureMarkerSymbol("images/Point1.png", 20, 20);
+
+                featureLayer = new FeatureLayer("https://edutrial.geoscene.cn/geoscene/rest/services/Hosted/StopContrast/FeatureServer/2", {
+                    mode: FeatureLayer.MODE_SNAPSHOT,
+                    outFields: ["*"],
+                    id: "fdpoilayer"
+
+                })
+
+                // 8.27
+                var Symbol = new PictureMarkerSymbol("images/ChargeStation/Stops.png", 28, 28);
+                // var render = new SimpleRenderer(Simbol);
+                // featurelayer.setRenderer(render);
+                var renderer = new SimpleRenderer(Symbol);
+                //
+                featureLayer.setRenderer(renderer);
+
+                featureLayer.id = "FeatureLayer1"
+                console.log(featureLayer)
+                map.addLayer(featureLayer);
+
+                var drawTool = new Draw(map, {
+                    drawTime: 30,
+                    showTooltips: true,
+                });
+
+                console.log("qwe", featureLayer.graphics);
+
+                //设置绘画区样式
+                var fsDraw = new SimpleFillSymbol();
+                fsDraw.color = new Color([203, 220, 247, 0.5]);
+                fsDraw.style = SimpleLineSymbol.STYLE_SOLID;
+                fsDraw.outline = new SimpleLineSymbol(
+                    SimpleLineSymbol.STYLE_SOLID,
+                    new Color([255, 255, 255, 0.5]), 2);
+
+                //设置各类点符号
+                var smsClass1 = new SimpleMarkerSymbol();
+                smsClass1.color = [56, 168, 0];
+                smsClass1.size = 15;
+                smsClass1.outline = new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, null, 1);
+
+                var smsClass2 = new SimpleMarkerSymbol();
+                smsClass2.color = [141, 212, 0];
+                smsClass2.size = 20;
+                smsClass2.outline = new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, null, 1);
+
+                var smsClass3 = new SimpleMarkerSymbol();
+                smsClass3.color = [255, 255, 0];
+                smsClass3.size = 30;
+                smsClass3.outline = new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, null, 1);
+
+                var smsClass4 = new SimpleMarkerSymbol();
+                smsClass4.color = [255, 128, 0];
+                smsClass4.size = 40;
+                smsClass4.outline = new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, null, 1);
+
+                var smsClass5 = new SimpleMarkerSymbol();
+                smsClass5.color = [255, 0, 0];
+                smsClass5.size = 50;
+                smsClass5.outline = new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID, null, 1);
+
+
+                var queryTask = new QueryTask("https://edutrial.geoscene.cn/geoscene/rest/services/Hosted/StopContrast/FeatureServer/2");
+                var query = new Query();
+                on(dom.byId("all"), "click", function () {
+                    drawTool.activate(Draw.POLYGON);
+                    console.log(1)
+                    console.log("qwe", featureLayer.graphics);
+                });
+
+                drawTool.on("draw-end", function (evt) {
+
+                    console.log("绘制完成了！")
+                    console.log("qwe", featureLayer.graphics);
+
+                    if (layer) {
+                        map.removeLayer(layer)
+                    }
+                    drawTool.deactivate();
+
+                    var tux = new Graphic(evt.geometry, fsDraw);
+                    console.log("+++++++++++++++++")
+                    console.log(tux)
+                    var graphicsLayer = new GraphicsLayer({id: "graphicsLayer"});
+                    graphicsLayer.add(tux);
+                    console.log(graphicsLayer)
+                    map.addLayer(graphicsLayer);
+                    fn(evt, graphicsLayer);
+                    console.log(2)
+                });
+
+                //
+                function fn(evt, graphicsLayer) {
+                    console.log(3)
+                    query.outSpatialReference = {wkid: 102100};
+                    query.geometry = evt.geometry;
+                    query.outFields = ["*"];
+                    query.returnGeometry = true;
+                    queryTask.execute(query, function (event) {
+                        map.removeLayer(graphicsLayer);
+                        var evFeature = event.features;
+                        var fields = event.fields;
+                        var fieldStrArr = [];
+                        console.log(evFeature[0].attributes)
+                        console.log(fields)
+                        for (let i = 0; i < fields.length; i++) {
+
+                            var last = JSON.stringify(fields[i]);
+                            console.log(last)
+                            fieldStrArr.push(last);
+                        }
+                        console.log("--------------------")
+                        console.log(featureLayer)
+                        console.log(featureLayer.graphics)
+                        for (let k = 0; k < featureLayer.graphics.length; k++) {
+
+                            console.log(featureLayer.graphics.length)
+                            console.log("graphics的次数")
+                            for (let j = 0; j < evFeature.length; j++) {
+                                if (featureLayer.graphics[k].attributes.name == evFeature[j].attributes.name) {
+                                    evFeature[j].attributes = featureLayer.graphics[k].attributes;
+                                }
+                            }
+                        }
+
+
+                        for (let s = 0; s < evFeature.length; s++) {
+                            console.log(4)
+                            var attr = evFeature[s].attributes;
+                            var xy = webMercatorUtils.lngLatToXY(attr.x, attr.y);
+                            poilayer.add(new Graphic(new Point({
+                                "x": xy[0],
+                                "y": xy[1],
+                                "spatialReference": {"wkid": 102100},
+
+                            }), null, attr));
+                        };
+                        var poiGraphics = poilayer.graphics;
+
+
+                        renderPoi(poilayer.graphics);
+                        console.log(poiGraphics);
+                        map.addLayer(poilayer);
+                        map.getLayer("FeatureLayer1").setVisibility(false);
+                        map.setExtent(graphicsUtils.graphicsExtent(poiGraphics));
+                        // 图例
+                        $("#mutilegend").removeClass("hidden");
+                        console.log(5)
+                        if (!dom.byId("mutilegend_Layer") && poilayer.graphics.length > 0) {
+                            console.log(6)
+                            var layerInfos = [{
+                                layer: Layer,
+                                title: "停车点评分"
+                            }]
+                            Legend = new Legend({
+                                map: map,
+                                layerInfos: layerInfos,
+                            }, "mutilegend");
+                            Legend.startup();
+                        } else if (dom.byId("mutilegend_Layer")) {
+                            fx.fadeIn({
+                                node: dom.byId("mutilegend"),
+                                duration: 500,
+                                onEnd: function () {
+                                },
+                            }).play();
+                        }
+                        ;
+                        //点击选择停车点,开始选点
+                        $("#startdraw").click(function () {
+                            console.log(7)
+                            poilayer.on("click", selectPoint);
+                        });
+
+
+                    })
+                };
+                $("#clean").click(clearPoilayer);
+
+                $("#findd").click(viewchart);
+
+
+                function viewchart() {
+
+                    if ($("#class1").val() == "" && $("#class2").val() == "" && $("#class3").val() == "") {
+                        alert("还没有获取到任何数据");
+                    } else {
+                        for (let va = 1; va < 4; va++) {
+                            if ($("#class" + va).val() == "") {
+                                value[va - 1] = [0, 0, 0, 0, 0, 0];
+                                dataName[va - 1] = null;
+                            }
+                        }
+
+                        $("#pikOne").css("display", "block");
+                        $("#pikTwo").css("display", "block");
+                        $("#pikThree").css("display", "block");
+                        $("#pikFour").css("display", "block");
+                        fx.fadeIn({
+                            node: dom.byId("pikOne"),
+                            node: dom.byId("pikTwo"),
+                            node: dom.byId("pikThree"),
+                            node: dom.byId("pikFour"),
+                            duration: 500,
+                            onEnd: function () {
+                            }
+                        }).play();
+
+                        console.log(dataName);
+                        console.log(value)
+
+                        if (value[0][0]) {
+                            var myChartOne = echarts.init(document.getElementById("pikOne"));
+                            optionOne = {
+                                color: ['#63b2ee', '#76da91', '#f8cb7f', '#e7205f', '#ffc722', '#ff633c'],
+                                title: {
+                                    text: '订单',
+                                    x: '45%',
+                                    y: '35%',
+                                    textStyle: {
+                                        fontSize: 23,
+                                        fontWeight:'normal',
+                                        color: ['#fff']
+                                    },
+                                },
+                                tooltip: {
+                                    trigger: 'item',
+                                    formatter: '{b}：{c} ({d}%)',
+                                },
+                                legend: {
+                                    top: '65%',
+                                    itemWidth: 10,
+                                    itemHeight: 10,
+                                    textStyle: {
+                                        color: '#fff',
+                                        fontSize: '14',
+                                    },
+                                },
+                                series: [
+                                    // 内圈
+                                    {
+                                        name: '专题资源',
+                                        type: 'pie',
+                                        center: ['50%', '40%'],
+                                        radius: ['28.5%', '30.5%'],
+                                        silent: true, //取消高亮
+                                        label: { show: false, position: 'center' },
+                                        data: [
+                                            {
+                                                value: value[0][0],
+                                                name: dataName[0],
+                                            },
+                                            {
+                                                value: value[1][0],
+                                                name: dataName[1],
+                                            },
+                                            {
+                                                value: value[2][0],
+                                                name: dataName[2],
+                                            },
+                                        ],
+                                    },
+                                    // 外圈
+                                    {
+                                        name: '专题资源',
+                                        type: 'pie',
+                                        center: ['50%', '40%'],
+                                        radius: ['35%', '45%'],
+                                        label: { show: false, position: 'center' },
+                                        data: [
+                                            {
+                                                value: value[0][0],
+                                                name: dataName[0],
+                                            },
+                                            {
+                                                value: value[1][0],
+                                                name: dataName[1],
+                                            },
+                                            {
+                                                value: value[2][0],
+                                                name: dataName[2],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            };
+                            myChartOne.setOption(optionOne);
+
+                            var myChartTwo = echarts.init(document.getElementById("pikTwo"));
+                            optionTwo = {
+                                color: ['#f89588', '#7cd6cf', '#9192ab', '#e7205f', '#ffc722', '#ff633c'],
+                                title: {
+                                    text: '损坏',
+                                    x: '45%',
+                                    y: '35%',
+                                    textStyle: {
+                                        fontSize: 23,
+                                        fontWeight:'normal',
+                                        color: ['#fff']
+                                    },
+                                },
+                                tooltip: {
+                                    trigger: 'item',
+                                    formatter: '{b}：{c} ({d}%)',
+                                },
+                                legend: {
+                                    top: '65%',
+                                    itemWidth: 10,
+                                    itemHeight: 10,
+                                    textStyle: {
+                                        color: '#fff',
+                                        fontSize: '14',
+                                    },
+                                },
+                                series: [
+                                    // 内圈
+                                    {
+                                        name: '专题资源',
+                                        type: 'pie',
+                                        center: ['50%', '40%'],
+                                        radius: ['28.5%', '30.5%'],
+                                        silent: true, //取消高亮
+                                        label: { show: false, position: 'center' },
+                                        data: [
+                                            {
+                                                value: value[0][1],
+                                                name: dataName[0],
+                                            },
+                                            {
+                                                value: value[1][1],
+                                                name: dataName[1],
+                                            },
+                                            {
+                                                value: value[2][1],
+                                                name: dataName[2],
+                                            },
+                                        ],
+                                    },
+                                    // 外圈
+                                    {
+                                        name: '专题资源',
+                                        type: 'pie',
+                                        center: ['50%', '40%'],
+                                        radius: ['35%', '45%'],
+                                        label: { show: false, position: 'center' },
+                                        data: [
+                                            {
+                                                value: value[0][1],
+                                                name: dataName[0],
+                                            },
+                                            {
+                                                value: value[1][1],
+                                                name: dataName[1],
+                                            },
+                                            {
+                                                value: value[2][1],
+                                                name: dataName[2],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            };
+                            myChartTwo.setOption(optionTwo);
+
+                            var myChartThree = echarts.init(document.getElementById("pikThree"));
+                            optionThree = {
+                                color: ['#7898e1', '#efa666', '#eddd86', '#e7205f', '#ffc722', '#ff633c'],
+                                title: {
+                                    text: '评分',
+                                    x: '45%',
+                                    y: '35%',
+                                    textStyle: {
+                                        fontSize: 23,
+                                        fontWeight:'normal',
+                                        color: ['#fff']
+                                    },
+                                },
+                                tooltip: {
+                                    trigger: 'item',
+                                    formatter: '{b}：{c} ({d}%)',
+                                },
+                                legend: {
+                                    top: '65%',
+                                    itemWidth: 10,
+                                    itemHeight: 10,
+                                    textStyle: {
+                                        color: '#fff',
+                                        fontSize: '14',
+                                    },
+                                },
+                                series: [
+                                    // 内圈
+                                    {
+                                        name: '专题资源',
+                                        type: 'pie',
+                                        center: ['50%', '40%'],
+                                        radius: ['28.5%', '30.5%'],
+                                        silent: true, //取消高亮
+                                        label: { show: false, position: 'center' },
+                                        data: [
+                                            {
+                                                value: value[0][2],
+                                                name: dataName[0],
+                                            },
+                                            {
+                                                value: value[1][2],
+                                                name: dataName[1],
+                                            },
+                                            {
+                                                value: value[2][2],
+                                                name: dataName[2],
+                                            },
+                                        ],
+                                    },
+                                    // 外圈
+                                    {
+                                        name: '专题资源',
+                                        type: 'pie',
+                                        center: ['50%', '40%'],
+                                        radius: ['35%', '45%'],
+                                        label: { show: false, position: 'center' },
+                                        data: [
+                                            {
+                                                value: value[0][2],
+                                                name: dataName[0],
+                                            },
+                                            {
+                                                value: value[1][2],
+                                                name: dataName[1],
+                                            },
+                                            {
+                                                value: value[2][2],
+                                                name: dataName[2],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            };
+                            myChartThree.setOption(optionThree);
+
+                            var myChartFour = echarts.init(document.getElementById("pikFour"));
+                            optionFour = {
+                                color: ['#9987ce', '#63b2ee', '#76da91', '#e7205f', '#ffc722', '#ff633c'],
+                                title: {
+                                    text: '人流量',
+                                    x: '43%',
+                                    y: '35%',
+                                    textStyle: {
+                                        fontSize: 23,
+                                        fontWeight:'normal',
+                                        color: ['#fff']
+                                    },
+                                },
+                                tooltip: {
+                                    trigger: 'item',
+                                    formatter: '{b}：{c} ({d}%)',
+                                },
+                                legend: {
+                                    top: '65%',
+                                    itemWidth: 10,
+                                    itemHeight: 10,
+                                    textStyle: {
+                                        color: '#fff',
+                                        fontSize: '14',
+                                    },
+                                },
+                                series: [
+                                    // 内圈
+                                    {
+                                        name: '专题资源',
+                                        type: 'pie',
+                                        center: ['50%', '40%'],
+                                        radius: ['28.5%', '30.5%'],
+                                        silent: true, //取消高亮
+                                        label: { show: false, position: 'center' },
+                                        data: [
+                                            {
+                                                value: value[0][3],
+                                                name: dataName[0],
+                                            },
+                                            {
+                                                value: value[1][3],
+                                                name: dataName[1],
+                                            },
+                                            {
+                                                value: value[2][3],
+                                                name: dataName[2],
+                                            },
+                                        ],
+                                    },
+                                    // 外圈
+                                    {
+                                        name: '专题资源',
+                                        type: 'pie',
+                                        center: ['50%', '40%'],
+                                        radius: ['35%', '45%'],
+                                        label: { show: false, position: 'center' },
+
+                                        data: [
+                                            {
+                                                value: value[0][3],
+                                                name: dataName[0],
+                                            },
+                                            {
+                                                value: value[1][3],
+                                                name: dataName[1],
+                                            },
+                                            {
+                                                value: value[2][3],
+                                                name: dataName[2],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            };
+                            myChartFour.setOption(optionFour);
+
+                        }
+                    }
+
+                };
+
+
+                function clearPoilayer() {
+                    if (poilayer) {
+                        poilayer.clear();
+                        console.log($("#class1").val());
+                        console.log($("#class3").val());
+                        console.log($("#class3").val());
+
+                        map.removeLayer(poilayer);
+                        poilayer.clear();
+                        map.centerAndZoom([118.747, 32.052], 13);
+                        map.getLayer("FeatureLayer1").setVisibility(true);
+                        if (dom.byId("mutilegend_Layer")) {
+                            fx.fadeOut({
+                                node: dom.byId("mutilegend"),
+                                duration: 500,
+                                onEnd: function () {
+                                },
+                            }).play();
+                        }
+
+                    } else {
+                        alert("请先画出要分析的区域...");
+                    };
+                }
+
+                function selectPoint(evt) {
+
+                    console.log(8)
+                    var poiInfo = evt.graphic.attributes;
+                    var PointName = poiInfo.name;
+                    var Poi = evt.graphic;
+                    console.log(poiInfo)
+                    //渲染
+                    var UpSymbol = new SimpleMarkerSymbol(
+                        SimpleMarkerSymbol.STYLE_CIRCLE, 23,
+                        new SimpleLineSymbol(SimpleLineSymbol.STYLE_SOLID,
+                            new Color([138, 43, 226]), 1),
+                        new Color([138, 43, 226, 1]));
+
+                    if ($("#class1").val() == "") {
+                        $("#class1").val(PointName);
+                        Poi.setSymbol(UpSymbol);
+                        dataName[0] = PointName;
+                        value[0] = [
+                            poiInfo.number, // 订单
+                            poiInfo.damage, // 损坏
+                            poiInfo.score, // 评分
+                            poiInfo.flow, // 人流量
+                        ];
+
+                    } else if ($("#class2").val() == "") {
+                        $("#class2").val(PointName);
+                        Poi.setSymbol(UpSymbol);
+                        dataName[1] = PointName;
+                        value[1] = [
+                            poiInfo.number, // 订单
+                            poiInfo.damage, // 损坏
+                            poiInfo.score, // 评分
+                            poiInfo.flow, // 人流量
+                        ];
+
+                    } else if ($("#class3").val() == "") {
+                        $("#class3").val(PointName);
+                        Poi.setSymbol(UpSymbol);
+                        dataName[2] = PointName;
+                        value[2] = [
+                            poiInfo.number, // 订单
+                            poiInfo.damage, // 损坏
+                            poiInfo.score, // 评分
+                            poiInfo.flow, // 人流量
+                        ];
+
+                    } else {
+                        alert("最多只能选择三个停车点进行对比，请删除后替换停车点");
+                    };
+
+
+                };
+
+                for (let z = 1; z < 4; z++) {
+                    $("#clearclass" + z).click(function () {
+                        if ($("#class" + z).val() != "") {
+                            var clearpoi;
+                            var poiGraphics = poilayer.graphics;
+                            for (let i = 0; i < poiGraphics.length; i++) {
+                                if (poiGraphics[i].attributes.name == $("#class" + z).val()) {
+                                    clearpoi = poiGraphics[i];
+                                }
+                            }
+                            renderPoi([clearpoi]);
+
+                            $("#class" + z).val("");
+                            dataName[z - 1] = null;
+                            for (let v = 0; v < value[z - 1].length; v++) {
+                                value[z - 1][v] = 0;
+                            }
+                        }
+                    })
+                }
+
+                function renderPoi(p) {
+                    console.log("123456879")
+                    console.log(p)
+                    for (let l = 0; l < p.length; l++) {
+                        var sum = p[l].attributes.number;
+                        if (sum <= 24) {
+                            p[l].setSymbol(smsClass1);
+
+                        } else if (sum > 24 && sum <= 32) {
+                            p[l].setSymbol(smsClass2);
+
+                        } else if (sum > 32 && sum < 38) {
+
+                            p[l].setSymbol(smsClass3);
+
+                        } else if (sum > 38 && sum < 45) {
+
+                            p[l].setSymbol(smsClass4);
+
+                        } else if (sum >= 45) {
+                            p[l].setSymbol(smsClass5);
+                        }
+                    }
+                }
+
+            }
+
+
+
+
+        });
+
+
+
+    </script>
+</head>
+<body>
+<div id="map">
+    <button id="button_tianjia1" type="button" >添加OD线</button>
+    <button id="button_tianjia2" type="button" >添加POI</button>
+    <button id="button_taisen" type="button" >泰森多边形</button>
+
+
+    <div class="site_compare">
+        <br>
+        <div id="start">
+            <button class="btn btn-mq" id="all" data-dojo-attach-event="click:init,mouseover:change">显示全部停车点</button>
+            <button class="btn btn-dulefat btn-mq-clear btn-sm" data-dojo-attach-event="click:clearall" style="margin-left: 27px;">清除图层</button>
+        </div>
+        <div id="choose" class="xuanqu">
+            <button class="btn btn-mq" id="startdraw">开始选取</button>
+            <button class="btn btn-default btn-mq-clear btn-sm" id="enddraw" style="margin-left: 68px;">结束选点</button>
+        </div>
+        <div id="siteName">
+            <label class="ziti">停车点1:</label>
+            <input id="class1" type="text" class="flowSelect">
+            <button class="btn btn-default btn-mq-clear btn-sm" id="clearclass1" style="margin-left: 27px;">清除</button>
+            </br>
+            <label class="ziti">停车点2:</label>
+            <input id="class2" type="text" class="flowSelect">
+            <button class="btn btn-default btn-mq-clear btn-sm" id="clearclass2" style="margin-left: 27px;">清除</button>
+            </br>
+            <label class="ziti">停车点3:</label>
+            <input id="class3" type="text" class="flowSelect">
+            <button class="btn btn-default btn-mq-clear btn-sm" id="clearclass3" style="margin-left: 27px;">清除</button>
+            </br>
+        </div>
+        <div id="check">
+            <button class="btn btn-mq" id="findd" data-dojo-attach-event="click:check">查看停车点对比图</button>
+            <button class="btn btn-mq-clear btn-sm" id="clean" data-dojo-attach-event="click:none">清除区域</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
